@@ -4,17 +4,29 @@ import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-javascript";
 import "ace-builds/src-noconflict/mode-python";
 import "ace-builds/src-noconflict/mode-c_cpp";
-import "ace-builds/src-noconflict/theme-github";
+// import "ace-builds/src-noconflict/theme-github";
 import "ace-builds/src-noconflict/theme-monokai";
-// import "ace-builds/src-noconflict/ext-language_tools";
+import "ace-builds/src-noconflict/ext-language_tools";
 
-const CodeEditor = () => {
+const CodeEditor = ({ userId }) => {
     const [selectedLanguage, setSelectedLanguage] = useState("javascript");
+    const [userCode, setUserCode] = useState('')
     const languageModes = {
         JavaScript: "javascript",
         Python: "python",
-        "C++": "c_cpp"
+        "C++": "cpp"
     };
+    const handleRun = async () => {
+        const res = await fetch('http://localhost:9000/api/run-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: userId,
+                selectedLanguage,
+                userCode,
+            }),
+        });
+    }
 
     return (
         <div className="web-ide-container">
@@ -30,7 +42,9 @@ const CodeEditor = () => {
                     ))}
                 </select>
 
-                <button>
+                <button
+                    onClick={handleRun}
+                >
                     Run Code
                 </button>
             </div>
@@ -45,6 +59,8 @@ const CodeEditor = () => {
                     enableSnippets: true,
                     useWorker: false
                 }}
+                value={userCode}
+                onChange={setUserCode}
             />
         </div>
     )

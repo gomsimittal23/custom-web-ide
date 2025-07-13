@@ -9,8 +9,13 @@ import CodeEditor from './components/CodeEditor';
 function App() {
 
   const [tree, setTree] = useState({});
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
+    // get user id from localstorage or create it
+    const id = getOrCreateUserId();
+    setUserId(id);
+
     getFileTree();
   }, []);
 
@@ -30,6 +35,17 @@ function App() {
     setTree(result.tree);
   };
 
+  function getOrCreateUserId() {
+    let id = localStorage.getItem('user_id');
+    if (!id) {
+      const timestamp = Date.now().toString(36);       // e.g., "lnb6t5"
+      const random = Math.random().toString(36).slice(2, 6); // e.g., "x8f2"
+      id = 'user_' + timestamp + random; // e.g., "user_lnb6t5x8f2"
+      localStorage.setItem('user_id', id);
+    }
+    return id;
+  }
+
   return (
     <div className='playground-container'>
       <div className='editor-container'>
@@ -37,7 +53,7 @@ function App() {
           <FileTree tree={tree} />
         </div>
         <div className="editor">
-          <CodeEditor/>
+          <CodeEditor userId={userId} />
         </div>
       </div>
       <div className='terminal-container'>

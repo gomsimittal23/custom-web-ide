@@ -3,6 +3,7 @@ const express = require('express');
 const { Server: SocketServer } = require('socket.io');
 const pty = require('node-pty');
 const fs = require('fs/promises'); //for filesystem
+const filesys = require('fs'); //for filesystem
 const path = require('path');
 const cors = require('cors');
 const chokidar = require('chokidar'); //watch file changes
@@ -22,6 +23,8 @@ const server = http.createServer(app);
 const io = new SocketServer({
     cors: '*'
 });
+
+app.use(express.json());
 
 // allow call from frontend using localhost
 app.use(cors());
@@ -57,6 +60,48 @@ chokidar.watch('./user').on('all', (event, path) => {
 server.listen(9000, () => {
     return console.log('docker running on port 9000');
 });
+
+app.post('/api/run-code', async (req, res) => {
+    const { userId, userCode, selectedLanguage } = req.body;
+    if (!userId || !userCode || !selectedLanguage) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+    // create a folder named userId in user directory (if not created before)
+    const userDir = path.join(__dirname, 'users', userId);
+    if (!filesys.existsSync(userDir)) {
+        filesys.mkdirSync(userDir, { recursive: true });
+    }
+
+    const langToExtension = {
+        python: 'py',
+        javascript: 'js',
+        cpp: 'cpp'
+    };
+
+    const fileExt = langToExtension[selectedLanguage];
+    if (!fileExt) {
+        return res.status(400).json({ error: 'Unsupported language' });
+    }
+    // create a file named userId.language in userId folder (if not created before)
+    const filePath = path.join(userDir, `main.${fileExt}`);
+    filesys.writeFileSync(filePath, userCode);
+
+    // run code in background
+    runInDocker(userId, selectedLanguage, (output) => {
+        // Emit result via socket
+        io.to(userId).emit('execution-result', output);
+    });
+
+    // return status to show that code is running
+    res.status(200).json({
+        status: true,
+        message: 'Code execution started in background',
+    });
+});
+
+function runInDocker(userId, lang, output) {
+    console.log(userId);
+}
 
 async function generateFileTree(directory) {
     const tree = {};

@@ -1,1 +1,6 @@
 node_modules
+# Ignore everything inside users/
+users/**
+
+# But keep the users/ folder itself
+!users/
