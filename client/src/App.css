@@ -3,7 +3,7 @@
   flex-direction: column;
 }
 .editor-container {
-  height: 60vh;
+  height: 70vh;
   display: flex;
 }
 li {
@@ -15,4 +15,21 @@ li {
   background: lightyellow;
   border-radius: 10px;
   cursor: pointer;
+}
+.files {
+  width: 12%;
+}
+.editor {
+  width: 86%;
+}
+.web-ide-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.manage-editor {
+  display: flex;
+  height: 40px;
+  padding: 4px;
+  justify-content: space-around;
 }

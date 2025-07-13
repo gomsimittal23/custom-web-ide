@@ -4,6 +4,7 @@ import FileTree from './components/filetree';
 import Terminal from './components/terminal';
 import { useEffect } from 'react';
 import socket from './socket';
+import CodeEditor from './components/CodeEditor';
 
 function App() {
 
@@ -35,7 +36,9 @@ function App() {
         <div className="files">
           <FileTree tree={tree} />
         </div>
-        <div className="editor"></div>
+        <div className="editor">
+          <CodeEditor/>
+        </div>
       </div>
       <div className='terminal-container'>
         <Terminal/>
