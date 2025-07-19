@@ -8,13 +8,14 @@ const path = require('path');
 const cors = require('cors');
 const chokidar = require('chokidar'); //watch file changes
 var os = require('os');
+const { spawn } = require('child_process');
 
 var shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
 const ptyProcess = pty.spawn(shell, [], {
     name: 'xterm-color',
     cols: 80,
     rows: 30,
-    cwd: process.env.INIT_CWD + '/user',
+    cwd: process.env.INIT_CWD + '/users',
     env: process.env
 });
 
@@ -43,17 +44,22 @@ io.on('connection', (socket) => {
     socket.on('terminal:write', (data) => {
         ptyProcess.write(data);
     });
+
+    // initial display msg on terminal
+    socket.on('terminal:init', () => {
+        ptyProcess.write('\r');
+    });
 });
 
 app.get('/files', async (req, res) => {
-    const fileTree = await generateFileTree('./user');
+    const fileTree = await generateFileTree('./users');
     return res.json({
         tree: fileTree
     });
 });
 
-// watch changes in user folder
-chokidar.watch('./user').on('all', (event, path) => {
+// watch changes in users folder
+chokidar.watch('./users').on('all', (event, path) => {
   io.emit('file:refresh', path);
 });
 
@@ -66,7 +72,7 @@ app.post('/api/run-code', async (req, res) => {
     if (!userId || !userCode || !selectedLanguage) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
-    // create a folder named userId in user directory (if not created before)
+    // create a folder named userId in users directory (if not created before)
     const userDir = path.join(__dirname, 'users', userId);
     if (!filesys.existsSync(userDir)) {
         filesys.mkdirSync(userDir, { recursive: true });
@@ -86,11 +92,16 @@ app.post('/api/run-code', async (req, res) => {
     const filePath = path.join(userDir, `main.${fileExt}`);
     filesys.writeFileSync(filePath, userCode);
 
+    console.log("before")
+
     // run code in background
     runInDocker(userId, selectedLanguage, (output) => {
+        // console.log(output);
         // Emit result via socket
         io.to(userId).emit('execution-result', output);
     });
+
+    console.log("after")
 
     // return status to show that code is running
     res.status(200).json({
@@ -99,8 +110,64 @@ app.post('/api/run-code', async (req, res) => {
     });
 });
 
-function runInDocker(userId, lang, output) {
-    console.log(userId);
+async function runInDocker(userId, lang, onOutput) {
+    const userDir = path.join(__dirname, 'users', userId);
+
+    let fileName, dockerImage, compileCmd, runCmd;
+
+    switch (lang) {
+        case 'cpp':
+            fileName = 'main.cpp';
+            dockerImage = 'gcc';
+            compileCmd = `g++ ${fileName} -o main.out`;
+            runCmd = `./main.out`;
+            break;
+        case 'python':
+            fileName = 'main.py';
+            dockerImage = 'python';
+            runCmd = `python ${fileName}`;
+            break;
+        case 'javascript':
+            fileName = 'main.js';
+            dockerImage = 'node';
+            runCmd = `node ${fileName}`;
+            break;
+        default:
+            onOutput('Unsupported language.');
+            return;
+    }
+
+    const volumeMount = `${userDir}:/app`;
+    const containerCmd = compileCmd
+        ? `sh -c "${compileCmd} && ${runCmd}"`
+        : runCmd;
+
+    const dockerArgs = [
+        'run',
+        '--rm',
+        '-v', volumeMount,
+        '-w', '/app',
+        dockerImage,
+        'sh', '-c', containerCmd
+    ];
+
+    const dockerProcess = spawn('docker', dockerArgs);
+
+    let output = '';
+
+    dockerProcess.stdout.on('data', (data) => {
+        output += data.toString();
+    });
+
+    dockerProcess.stderr.on('data', (data) => {
+        output += data.toString();
+    });
+
+    dockerProcess.on('close', (code) => {
+        console.log("codeee-> " + code);
+        console.log("outputtt-> " + output);
+        onOutput(output.trim() || `Process exited with code ${code}`);
+    });
 }
 
 async function generateFileTree(directory) {
@@ -109,7 +176,7 @@ async function generateFileTree(directory) {
     async function buildTree(currDir, currTree) {
         // gives list of files and folders
         const list = await fs.readdir(currDir);
-        console.log(list);
+        // console.log(list);
 
         // each item is a file or a folder
         for( const item of list) {
@@ -121,13 +188,13 @@ async function generateFileTree(directory) {
             // folder
             if(stat.isDirectory()) {
                 currTree[item] = {};
-                console.log(currTree);
+                // console.log(currTree);
                 await buildTree(itemPath, currTree[item]);
             }
             // file
             else {
                 currTree[item] = null;
-                console.log(currTree);
+                // console.log(currTree);
             }
         }
     }

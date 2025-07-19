@@ -28,6 +28,10 @@ const Terminal = () => {
             terminal.write(data);
         });
 
+        // send a variable to backend to display msg on terminal initially
+        socket.emit('terminal:init')
+
+
     //    return () => {
     //     socket.off('terminal:data');
     //    }
