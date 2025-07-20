@@ -26,7 +26,16 @@ io.attach(server);
 io.on('connection', (socket) => {
     console.log('socket conected', socket.id); 
 
+    const userId = socket.handshake.query.userId;
 
+    if (userId) {
+        socket.join(userId); // Join room named after userId
+        console.log(`Socket ${socket.id} joined room ${userId}`);
+    }
+
+    socket.on('disconnect', () => {
+        console.log(`Socket ${socket.id} disconnected`);
+    });
 });
 
 app.get('/files', async (req, res) => {
@@ -46,7 +55,7 @@ server.listen(9000, () => {
 });
 
 app.post('/api/run-code', async (req, res) => {
-    const { userId, userCode, selectedLanguage } = req.body;
+    const { userId, userCode, selectedLanguage, userInput } = req.body;
     if (!userId || !userCode || !selectedLanguage) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -72,9 +81,9 @@ app.post('/api/run-code', async (req, res) => {
 
     console.log("before")
 
-    // run code in background (hardcoded input for now)
-    runInDocker(userId, selectedLanguage, "23", (output) => {
-        // console.log(output);
+    // run code in background
+    runInDocker(userId, selectedLanguage, userInput, (output) => {
+        console.log(output);
         // Emit result via socket
         io.to(userId).emit('execution-result', output);
     });

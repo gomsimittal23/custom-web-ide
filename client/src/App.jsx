@@ -10,11 +10,16 @@ function App() {
 
   const [tree, setTree] = useState({});
   const [userId, setUserId] = useState(null);
+  const [userInput, setUserInput] = useState('');
 
   useEffect(() => {
     // get user id from localstorage or create it
     const id = getOrCreateUserId();
     setUserId(id);
+
+    // set userId in socket and connect
+    socket.io.opts.query = { userId: id };
+    socket.connect();
 
     getFileTree();
   }, []);
@@ -53,11 +58,11 @@ function App() {
           <FileTree tree={tree} />
         </div>
         <div className="editor">
-          <CodeEditor userId={userId} />
+          <CodeEditor userId={userId} inputReceived={userInput} />
         </div>
       </div>
       <div className='terminal-container'>
-        <Terminal/>
+        <Terminal onUserInputSend={setUserInput} />
       </div>
     </div>
   )

@@ -8,7 +8,7 @@ import "ace-builds/src-noconflict/mode-c_cpp";
 import "ace-builds/src-noconflict/theme-monokai";
 import "ace-builds/src-noconflict/ext-language_tools";
 
-const CodeEditor = ({ userId }) => {
+const CodeEditor = ({ userId, inputReceived }) => {
     const [selectedLanguage, setSelectedLanguage] = useState("javascript");
     const [userCode, setUserCode] = useState('')
     const languageModes = {
@@ -24,6 +24,7 @@ const CodeEditor = ({ userId }) => {
                 userId: userId,
                 selectedLanguage,
                 userCode,
+                userInput: inputReceived,
             }),
         });
     }

@@ -33,3 +33,27 @@ li {
   padding: 4px;
   justify-content: space-around;
 }
+.terminal-container {
+  height: 30vh;
+}
+.input-output-div {
+  height: 100%;
+  display: flex;
+  border: 1px solid grey;
+}
+.input-container, .output-container {
+  width: 50%;
+  border-right: 1px solid grey;
+  padding: 10px;
+
+  h3 {
+    margin-bottom: 10px;
+  }
+
+  textarea {
+    width: 100%;
+    height: 80%;
+    padding: 4px;
+    resize: none;
+  }
+}
