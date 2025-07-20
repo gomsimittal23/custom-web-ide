@@ -4,3 +4,5 @@ users/**
 
 # But keep the users/ folder itself
 !users/
+
+.env

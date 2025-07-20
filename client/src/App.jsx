@@ -34,7 +34,7 @@ function App() {
   
 
   const getFileTree = async () => {
-    const response = await fetch('http://localhost:9000/files');
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/files`);
     const result = await response.json();
 
     setTree(result.tree);

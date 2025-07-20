@@ -50,7 +50,8 @@ chokidar.watch('./users').on('all', (event, path) => {
   io.emit('file:refresh', path);
 });
 
-server.listen(9000, () => {
+const port = process.env.PORT || 9000;
+server.listen(port, () => {
     return console.log('docker running on port 9000');
 });
 

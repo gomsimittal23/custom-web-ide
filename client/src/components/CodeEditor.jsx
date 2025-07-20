@@ -17,7 +17,7 @@ const CodeEditor = ({ userId, inputReceived }) => {
         "C++": "cpp"
     };
     const handleRun = async () => {
-        const res = await fetch('http://localhost:9000/api/run-code', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/run-code`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
