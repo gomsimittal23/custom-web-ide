@@ -1,23 +1,13 @@
 const http = require('http');
 const express = require('express');
 const { Server: SocketServer } = require('socket.io');
-const pty = require('node-pty');
 const fs = require('fs/promises'); //for filesystem
 const filesys = require('fs'); //for filesystem
 const path = require('path');
 const cors = require('cors');
 const chokidar = require('chokidar'); //watch file changes
-var os = require('os');
 const { spawn } = require('child_process');
 
-var shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
-const ptyProcess = pty.spawn(shell, [], {
-    name: 'xterm-color',
-    cols: 80,
-    rows: 30,
-    cwd: process.env.INIT_CWD + '/users',
-    env: process.env
-});
 
 const app = express();
 const server = http.createServer(app);
@@ -32,23 +22,11 @@ app.use(cors());
 
 io.attach(server);
 
-// emit data from backend to frontend terminal
-ptyProcess.onData(data => {
-    io.emit('terminal:data', data);
-})
 
 io.on('connection', (socket) => {
     console.log('socket conected', socket.id); 
 
-    // request from frontend using socket
-    socket.on('terminal:write', (data) => {
-        ptyProcess.write(data);
-    });
 
-    // initial display msg on terminal
-    socket.on('terminal:init', () => {
-        ptyProcess.write('\r');
-    });
 });
 
 app.get('/files', async (req, res) => {
@@ -94,8 +72,8 @@ app.post('/api/run-code', async (req, res) => {
 
     console.log("before")
 
-    // run code in background
-    runInDocker(userId, selectedLanguage, (output) => {
+    // run code in background (hardcoded input for now)
+    runInDocker(userId, selectedLanguage, "23", (output) => {
         // console.log(output);
         // Emit result via socket
         io.to(userId).emit('execution-result', output);
@@ -110,7 +88,7 @@ app.post('/api/run-code', async (req, res) => {
     });
 });
 
-async function runInDocker(userId, lang, onOutput) {
+async function runInDocker(userId, lang, userInput, onOutput) {
     const userDir = path.join(__dirname, 'users', userId);
 
     let fileName, dockerImage, compileCmd, runCmd;
@@ -145,6 +123,7 @@ async function runInDocker(userId, lang, onOutput) {
     const dockerArgs = [
         'run',
         '--rm',
+        '-i', //for user input
         '-v', volumeMount,
         '-w', '/app',
         dockerImage,
@@ -152,6 +131,12 @@ async function runInDocker(userId, lang, onOutput) {
     ];
 
     const dockerProcess = spawn('docker', dockerArgs);
+
+    // Send input to stdin of container
+    if (userInput) {
+        dockerProcess.stdin.write(userInput);
+        dockerProcess.stdin.end();
+    }
 
     let output = '';
 
